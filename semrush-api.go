@@ -2,22 +2,41 @@ package main
 
 import (
 	"net/http"
-	"fmt"
 	"io/ioutil"
+	"encoding/csv"
+	"strings"
+	"io"
+	"strconv"
 )
 
 const (
 	SEMRUSH_API = "http://api.semrush.com/"
 )
 
+// This will make the API call to SemRUSH to get the score of the domain
 func GetDomainScore(domain string, apiKey *string, lang *string) int {
-	address := SEMRUSH_API + "?key=" + *apiKey + "&database=" + *lang + "&type=domain_ranks&export_columns=Dn,Ot" + "&domain=" + domain
+	address := SEMRUSH_API + "?key=" + *apiKey + "&database=" + *lang + "&type=domain_ranks&export_columns=Ot" + "&domain=" + domain
 	res, err := http.Get(address)
 	CheckError(err)
 	body, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	CheckError(err)
-	fmt.Println(address)
-	fmt.Printf("%s", body)
-	return 1
+
+	r := csv.NewReader(strings.NewReader(string(body)))
+	skipFirstLine := true
+	for {
+		record, err := r.Read()
+		if skipFirstLine {
+			skipFirstLine = false
+			continue
+		}
+		if err == io.EOF {
+			break
+		}
+		CheckError(err)
+		i, err := strconv.Atoi(record[0])
+		CheckError(err)
+		return i
+	}
+	return 0
 }
