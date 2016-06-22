@@ -21,7 +21,7 @@ var scoreMap = map[string]int{}
 
 func main() {
 	file := flag.String("f", "", "CSV file with the url in the first column")
-	header := flag.Bool("h", true, "First row of file is header")
+	header := flag.Bool("header", false, "First row of file is header")
 	apiKey := flag.String("api", "", "API Key given by SEMRush")
 	lang := flag.String("lang", "us", "SEMRush language database")
 	flag.Parse()
