@@ -8,11 +8,13 @@ import (
 	"strings"
 	"io"
 	"net/url"
+	"strconv"
+	"os"
 )
 
 type csvEntry struct {
 	url string
-	csv string
+	csv []string
 }
 
 var scoreMap = map[string]int{}
@@ -48,13 +50,14 @@ func parseFile(file *string, header bool) []csvEntry {
 			break
 		}
 		CheckError(err)
-		csvEntryList = append(csvEntryList, csvEntry{record[0], "\"" + strings.Join(record, "\",\"") + "\""})
+		csvEntryList = append(csvEntryList, csvEntry{record[0], record})
 	}
 	return csvEntryList
 }
 
 // This will use SEMRush API for every url in urlList to get a domain score
 func processUrlList(csvEntryList []csvEntry, apiKey *string, lang *string) {
+	w := csv.NewWriter(os.Stdout)
 	for i := 0; i < len(csvEntryList); i++ {
 		domain := getDomainFromUrl(csvEntryList[i].url)
 		score, ok := scoreMap[domain];
@@ -62,8 +65,12 @@ func processUrlList(csvEntryList []csvEntry, apiKey *string, lang *string) {
 			score = GetDomainScore(domain, apiKey, lang)
 			scoreMap[domain] = score
 		}
-		fmt.Printf("%s,\"%d\"\n", csvEntryList[i].csv, score)
+		csvEntryList[i].csv = append(csvEntryList[i].csv, strconv.Itoa(score))
+		err := w.Write(csvEntryList[i].csv);
+		CheckError(err)
 	}
+	w.Flush()
+	CheckError(w.Error())
 }
 
 // Extract the domain name from the url address
