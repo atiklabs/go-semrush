@@ -24,12 +24,13 @@ func main() {
 	header := flag.Bool("header", false, "First row of file is header")
 	apiKey := flag.String("api", "", "API Key given by SEMRush")
 	lang := flag.String("lang", "us", "SEMRush language database")
+	domain := flag.Bool("domain", false, "From file the first column instead the url is the domain name")
 	flag.Parse()
 	if *file == "" || *apiKey == "" {
 		flag.Usage()
 	} else {
 		csvEntryList := parseFile(file, *header)
-		processUrlList(csvEntryList, apiKey, lang)
+		processUrlList(csvEntryList, apiKey, lang, *domain)
 	}
 }
 
@@ -56,10 +57,13 @@ func parseFile(file *string, header bool) []csvEntry {
 }
 
 // This will use SEMRush API for every url in urlList to get a domain score
-func processUrlList(csvEntryList []csvEntry, apiKey *string, lang *string) {
+func processUrlList(csvEntryList []csvEntry, apiKey *string, lang *string, isDomain bool) {
 	w := csv.NewWriter(os.Stdout)
 	for i := 0; i < len(csvEntryList); i++ {
-		domain := getDomainFromUrl(csvEntryList[i].url)
+		domain := csvEntryList[i].url
+		if !isDomain {
+			domain = getDomainFromUrl(csvEntryList[i].url)
+		}
 		score, ok := scoreMap[domain];
 		if !ok {
 			score = GetDomainScore(domain, apiKey, lang)
