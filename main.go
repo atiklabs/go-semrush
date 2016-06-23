@@ -12,6 +12,10 @@ import (
 	"os"
 )
 
+const (
+	GOROUTINES = 50
+)
+
 type csvEntry struct {
 	url string
 	csv []string
@@ -24,13 +28,18 @@ func main() {
 	header := flag.Bool("header", false, "First row of file is header")
 	apiKey := flag.String("api", "", "API Key given by SEMRush")
 	lang := flag.String("lang", "us", "SEMRush language database")
-	domain := flag.Bool("domain", false, "From file the first column instead the url is the domain name")
+	domain := flag.Bool("domain", false, "The first column of the CSV file is the domain name instead of the url ")
+	async := flag.Bool("async", false, "50x faster, result returned is shuffled, spends more API points because connects once for each URL instead for each domain")
 	flag.Parse()
 	if *file == "" || *apiKey == "" {
 		flag.Usage()
 	} else {
 		csvEntryList := parseFile(file, *header)
-		processUrlList(csvEntryList, apiKey, lang, *domain)
+		if *async {
+			processUrlListAsync(csvEntryList, apiKey, lang, *domain)
+		} else {
+			processUrlList(csvEntryList, apiKey, lang, *domain)
+		}
 	}
 }
 
@@ -75,6 +84,35 @@ func processUrlList(csvEntryList []csvEntry, apiKey *string, lang *string, isDom
 	}
 	w.Flush()
 	CheckError(w.Error())
+}
+
+// Same as processUrlList by threaded with goroutines
+func processUrlListAsync(csvEntryList []csvEntry, apiKey *string, lang *string, isDomain bool) {
+	for i := 0; i < len(csvEntryList); i += GOROUTINES {
+		done := make(chan bool, GOROUTINES)
+		for j := i; j < len(csvEntryList) && j < i + GOROUTINES; j++ {
+			domain := csvEntryList[j].url
+			if !isDomain {
+				domain = getDomainFromUrl(csvEntryList[j].url)
+			}
+			go asyncGetDomainScore(domain, csvEntryList[j].csv, apiKey, lang, done)
+		}
+		for j := i; j < len(csvEntryList) && j < i + GOROUTINES; j++ {
+			<-done
+		}
+	}
+}
+
+// This will be executed as a goroutine
+func asyncGetDomainScore(domain string, csvArray []string, apiKey *string, lang *string, done chan bool) {
+	score := GetDomainScore(domain, apiKey, lang)
+	csvArray = append(csvArray, strconv.Itoa(score))
+	w := csv.NewWriter(os.Stdout)
+	err := w.Write(csvArray);
+	CheckError(err)
+	w.Flush()
+	CheckError(w.Error())
+	done <- true
 }
 
 // Extract the domain name from the url address
