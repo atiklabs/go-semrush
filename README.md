@@ -16,3 +16,12 @@ Usage of go-semrush:
   -lang string
     	SEMRush language database (default "us")
 ```
+
+## Go Tutorials
+
+* https://gobyexample.com/
+* https://www.pluralsight.com/courses/creating-web-applications-go
+* https://github.com/astaxie/build-web-application-with-golang/tree/master/en
+* http://thenewstack.io/a-survey-of-5-go-web-frameworks/
+* https://github.com/go-lang-plugin-org/go-lang-idea-plugin
+* https://github.com/gengo/goship
